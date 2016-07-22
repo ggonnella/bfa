@@ -6,6 +6,8 @@ module BFA::Constants
 
   SIZEOF_SIZE = 4
 
+  INTEGER_DATATYPES = [:i, :I, :c, :C, :s, :S]
+
   NUMERIC_TEMPLATE_CODE = {
     :c => "c", :C => "C",
     :s => "s<", :S => "S<",

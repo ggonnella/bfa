@@ -20,12 +20,21 @@ Gem::Specification.new do |s|
   s.files = [
               'lib/bfa.rb',
               'lib/bfa/binary_cigar.rb',
+              'lib/bfa/binary_cigar/decode.rb',
+              'lib/bfa/binary_cigar/encode.rb',
               'lib/bfa/constants.rb',
               'lib/bfa/file.rb',
+              'lib/bfa/file/format_error.rb',
               'lib/bfa/record.rb',
-              'lib/bfa/rgfa.rb',
               'lib/bfa/error.rb',
               'lib/bfa/four_bit_sequence.rb',
+              'lib/bfa/four_bit_sequence/decode.rb',
+              'lib/bfa/four_bit_sequence/encode.rb',
+              'lib/core/integer.rb',
+              'lib/core/string.rb',
+              'lib/rgfa/byte_array.rb',
+              'lib/rgfa/cigar_operation.rb',
+              'lib/rgfa/line.rb',
             ]
   s.homepage = 'http://github.com/ggonnella/bfa'
   s.license = 'CC-BY-SA'

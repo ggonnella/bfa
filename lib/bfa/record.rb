@@ -1,6 +1,7 @@
 require "rgfa"
-require_relative "four_bit_sequence"
-require_relative "binary_cigar"
+require_relative "constants"
+require_relative "binary_cigar/encode"
+require_relative "four_bit_sequence/encode"
 
 class BFA::Record
 
@@ -75,23 +76,17 @@ class BFA::Record
     when :seq
       add_sequence(value)
     when :pos
-      add_numeric_value(:I, Integer(value))
+      add_position(value)
     when :cig
       add_cigar(value)
     when :lbs
-      value = value.parse_datastring(val_type) if value.kind_of?(String)
+      value = value.parse_datastring(:lbs) if value.kind_of?(String)
       # handled together with cgs
+      # <assert> @temp_storage.nil?
       @temp_storage = value
     when :cgs
-      value = value.parse_datastring(val_type) if value.kind_of?(String)
-      # handled together with lbs
-      raise unless @temp_storage and @temp_storage.size == value.size
-      add_size_of(value)
-      value.size.times do |i|
-        add_varlenstr(@temp_storage[i].name)
-        add_fixlenstr(@temp_storage[i].orient)
-        add_cigar(value[i])
-      end
+      # <assert> !@temp_storage.nil?
+      add_path_elements(@temp_storage, value)
       @temp_storage = nil
     else
       # <assert> false # this should be impossible
@@ -99,16 +94,44 @@ class BFA::Record
     return nil
   end
 
+  def add_position(value)
+    value = Integer(value)
+    # <assert> value > 0
+    pos = add_numeric_value(:I, value)
+  end
+
+  def add_path_elements(segments, cigars)
+    cigars = cigars.parse_datastring(:cgs) if cigars.kind_of?(String)
+    if cigars.all?{|c|c.empty?}
+      undefined = true
+    else
+      # <assert> segments.size == cigars.size
+      undefined = false
+    end
+    add_size_of(segments)
+    segments.size.times do |i|
+      add_varlenstr(segments[i].name)
+      add_fixlenstr(segments[i].orient)
+      undefined ? add_cigar([]) : add_cigar(cigars[i])
+    end
+  end
+
   def add_sequence(seq)
-    # TODO: handle "*"
-    add_size_of(seq)
-    add_values(NUMERIC_TEMPLATE_CODE[:C], seq.to_4bits)
+    if seq == "*"
+      add_numeric_value(:I, 0)
+    else
+      add_size_of(seq)
+      add_values(NUMERIC_TEMPLATE_CODE[:C], seq.to_4bits)
+    end
   end
 
   def add_cigar(cigar)
-    # TODO: handle "*"
-    cigar = cigar.cigar_operations if cigar.kind_of?(String)
-    add_numeric_values(:I, cigar.map(&:to_binary))
+    cigar = cigar.to_cigar
+    if cigar.empty?
+      add_numeric_value(:I, 0)
+    else
+      add_numeric_values(:I, cigar.map(&:to_binary))
+    end
   end
 
   def add_int(int)
@@ -123,14 +146,16 @@ class BFA::Record
   end
 
   def add_numeric_array(array)
-    array = array.parse_datastring(val_type) if array.kind_of?(String)
+    array = array.parse_datastring(:B) if array.kind_of?(String)
+    array = array.to_numeric_array
     st = array.compute_subtype
     add_fixlenstr(st)
     add_numeric_values(st.to_sym, array)
   end
 
   def add_byte_array(array)
-    array = array.parse_datastring(val_type) if array.kind_of?(String)
+    array = array.parse_datastring(:H) if array.kind_of?(String)
+    array = array.to_byte_array
     add_numeric_values(:C, array)
   end
 
@@ -190,21 +215,6 @@ class BFA::Record
     # <assert> array.kind_of?(Array)
     @template += (template + array.size.to_s)
     @data += array
-  end
-
-end
-
-class RGFA::Line
-
-  def to_bfa_record
-    bfa_record = BFA::Record.new(self.record_type)
-    required_fieldnames.each do |fieldname|
-      bfa_record.add_reqfield(*@data[fieldname])
-    end
-    optional_fieldnames.each do |fieldname|
-      bfa_record.add_optfield(fieldname, *@data[fieldname])
-    end
-    return bfa_record
   end
 
 end

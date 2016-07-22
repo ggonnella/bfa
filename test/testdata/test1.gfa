@@ -1,0 +1,26 @@
+H	VN:Z:1.0
+H	aa:A:Z
+H	jj:J:[1,2]
+H	bf:B:f,1.0,1.1
+H	uc:B:C,0,255,5,12
+H	bc:B:c,-12,127,-5,12
+H	us:B:S,1212,65000,5,12
+H	bs:B:s,-1212,1270,-5,12
+H	ui:B:I,1201212,2121270,0,1,12
+H	bi:B:i,-1201212,2121270,0,-1,12
+H	cu:i:112
+H	cs:i:-112
+H	su:i:1212
+H	ss:i:-1212
+H	iu:i:1201212
+H	is:i:-1201212
+H	hh:H:0FA112B2
+H	ff:f:-1.12E-12
+P	ABD	A-Segment+,SegmentB+,D-	*
+S	A-Segment	ACGACGGC	LN:i:8
+S	SegmentB	TACGTC	LN:i:6
+S	SegmentC	GACCGG	LN:i:6
+L	D	+	SegmentB	-	*
+L	A-Segment	+	SegmentB	+	2=1X1=
+C	A-Segment	+	SegmentC	+	3	3M1I2M
+S	D	*

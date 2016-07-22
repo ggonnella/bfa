@@ -1,5 +1,7 @@
 require "rgfa"
-require_relative "error"
+require_relative "constants"
+require_relative "binary_cigar/decode"
+require_relative "four_bit_sequence/decode"
 
 class BFA::File < File
 
@@ -32,19 +34,21 @@ class BFA::File < File
 
   def has_record?
     str = read(SIZEOF_SIZE)
-    STDERR.puts("no record anymore") if str.nil?
+    # <debug> "no record anymore" if str.nil?
     return false if str.nil?
     if str.size < SIZEOF_SIZE
       raise BFA::File::FormatError
     end
     @recordbytes = str.unpack(SIZEOF_TEMPLATE_CODE)[0] - SIZEOF_SIZE
-    STDERR.puts("record, bytes = #@recordbytes")
+    # <debug> "record, bytes = #@recordbytes"
     return true
   end
 
   def parse_record
     record_type = read(1)
     @recordbytes -= 1
+    # <debug> "record type = #{record_type}"
+    # <debug> "remaining bytes = #@recordbytes"
     line_data = {}
     line_klass = RGFA::Line.subclass(record_type)
     line_klass::REQFIELDS.each do |fieldname|
@@ -52,20 +56,28 @@ class BFA::File < File
     end
     parse_optfield(line_data) while @recordbytes > 0
     line = line_klass.new(line_data)
-    STDERR.puts line.inspect
+    # <debug> "RGFA::Line object: #{line.inspect}"
+    # <debug> "GFA line: #{line.to_s}"
     return line
   end
 
   def parse_reqfield(line_data, fieldname, line_klass)
     datatype = line_klass::DATATYPE[fieldname]
+    # <debug> "required field fieldname: #{fieldname}"
+    # <debug> "required field datatype: #{datatype}"
     value = parse_data_item(datatype.to_sym)
+    # <debug> "required field value: #{value.inspect}"
     line_data[fieldname] = [value, datatype]
   end
 
   def parse_optfield(line_data)
-    fieldname = parse_fixlenstr(2)
-    datatype = parse_fixlenstr(1)
+    fieldname = parse_fixlenstr(2).to_sym
+    # <debug> "optfield fieldname: #{fieldname}"
+    datatype = parse_fixlenstr(1).to_sym
+    # <debug> "optfield datatype: #{datatype}"
     value = parse_data_item(datatype.to_sym)
+    # <debug> "optfield value: #{value.inspect}"
+    datatype = :i if INTEGER_DATATYPES.include?(datatype)
     line_data[fieldname] = [value, datatype]
   end
 
@@ -91,52 +103,64 @@ class BFA::File < File
     when :seq
       parse_sequence
     when :pos
-      parse_numeric_value(:I)
+      parse_position
     when :cig
       parse_cigar
     when :lbs
       # also reads cgs
-      parse_path_elements
+      segments, cigars = parse_path_elements
+      # <assert> @temp_storage.nil?
+      @temp_storage = cigars
+      return segments
     when :cgs
-      fetch_stored_cigars
+      # <assert> !@temp_storage.nil?
+      cigars = @temp_storage
+      @temp_storage = nil
+      return cigars
     else
       # <assert> false # this should be impossible
     end
   end
 
-  def parse_path_elements
-    n_elements = parse_size
-    retval = []
-    raise unless @temp_storage.nil?
-    @temp_storage = []
-    n_elements.times do |i|
-      retval << [parse_varlenstr.to_sym,
-                 parse_fixlenstr(1).to_sym].to_oriented_segment
-      @temp_storage << parse_cigar
-    end
-    return retval
+  def parse_position
+    parse_numeric_value(:I)
   end
 
-  def fetch_stored_cigars
-    raise if @temp_storage.nil?
-    retval = @temp_storage
-    @temp_storage = nil
+  def parse_path_elements
+    n_elements = parse_size
+    # <debug> "path has #{n_elements} elements"
+    segments = []
+    cigars = []
+    n_elements.times do |i|
+      segments << [parse_varlenstr.to_sym,
+                 parse_fixlenstr(1).to_sym].to_oriented_segment
+      cigars << parse_cigar
+    end
+    return segments, cigars
   end
 
   def parse_sequence
-    # TODO: handle "*"
     seqsize = parse_size
-    n_values = (seqsize.to_f/2).ceil
-    parse_values(NUMERIC_SIZE[:C], NUMERIC_TEMPLATE_CODE[:C],
-                 n_values).to_byte_array.parse_4bits(seqsize)
+    if seqsize == 0
+      return "*"
+    else
+      n_values = (seqsize.to_f/2).ceil
+      parse_values(NUMERIC_SIZE[:C], NUMERIC_TEMPLATE_CODE[:C],
+                   n_values).to_byte_array.parse_4bits(seqsize)
+    end
   end
 
   def parse_cigar
-    parse_numeric_values(:I).map(&:parse_binary_cigar)
+    cigar = parse_numeric_values(:I)
+    if cigar.empty?
+      return "*"
+    else
+      return cigar.map(&:parse_binary_cigar)
+    end
   end
 
   def parse_numeric_array
-    st = parse_fixlenstr(1)
+    st = parse_fixlenstr(1).to_sym
     parse_numeric_values(st).to_numeric_array
   end
 
@@ -155,8 +179,12 @@ class BFA::File < File
     # <assert> NUMERIC_SIZE.has_key?(val_type)
     # <assert> NUMERIC_TEMPLATE_CODE.has_key?(val_type)
     asize = parse_size
-    parse_values(NUMERIC_SIZE[val_type],
-                 NUMERIC_TEMPLATE_CODE[val_type], asize)
+    if asize == 0
+      return []
+    else
+      parse_values(NUMERIC_SIZE[val_type],
+                   NUMERIC_TEMPLATE_CODE[val_type], asize)
+    end
   end
 
   def parse_varlenstr
@@ -166,9 +194,6 @@ class BFA::File < File
 
   def parse_size
     s = parse_value(SIZEOF_SIZE, SIZEOF_TEMPLATE_CODE)
-    if s <= 0
-      raise BFA::File::FormatError
-    end
     return s
   end
 
@@ -183,7 +208,9 @@ class BFA::File < File
       if c.nil?
         raise BFA::File::FormatError
       elsif c == "\0"
-        @recordbytes -= str.size
+        @recordbytes -= (str.size+1)
+        # <debug> "0-term string parsed: #{str.inspect}"
+        # <debug> "remaining bytes = #@recordbytes"
         return str
       else
         str << c
@@ -202,6 +229,8 @@ class BFA::File < File
   def read!(val_size)
     str = read(val_size)
     @recordbytes -= val_size
+    # <debug> "value read, size: #{val_size}"
+    # <debug> "remaining bytes = #@recordbytes"
     if str.nil? or str.size < val_size
       raise BFA::File::FormatError
     end
@@ -210,5 +239,4 @@ class BFA::File < File
 
 end
 
-# Format error during parsing of BFA files
-class BFA::File::FormatError < Error; end
+require_relative "file/format_error"

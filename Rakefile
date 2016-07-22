@@ -61,3 +61,19 @@ task :disable_assertions do
            filename)
   end
 end
+
+task :enable_debug do
+  Dir.glob("lib/**/*.rb").each do |filename|
+    system('sed "s/\(\s*\)# <debug> \(.*\)/'+
+           '\1STDERR.puts \"# debug: \"+\2/" -i '+
+           filename)
+  end
+end
+
+task :disable_debug do
+  Dir.glob("lib/**/*.rb").each do |filename|
+    system('sed "s/\(\s*\)STDERR.puts \"# debug: \"+\(.*\)'+
+           '/\1# <debug> \2/" -i '+
+           filename)
+  end
+end
