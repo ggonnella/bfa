@@ -1,0 +1,7 @@
+*.gem
+Gemfile.lock
+Gemfile
+pdfdoc/index.html
+pdfdoc/bfa-api-*.pdf
+.yardoc
+doc
