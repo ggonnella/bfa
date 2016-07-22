@@ -1,0 +1,209 @@
+\documentclass[12pt]{article}
+\usepackage{array}
+\usepackage{color}
+\definecolor{gray}{rgb}{0.7,0.7,0.7}
+\title{BFA format specification}
+\pagestyle{empty}
+\begin{document}
+
+\section*{Draft BFA Specification}
+
+\subsection*{General notes}
+
+\begin{itemize}
+\item The BFA specification translates the GFA specification in a binary format.
+\item Data types and data organization are derived from the BAM specification.
+\item Data types are always little-endian.
+\item File can be optionally compressed
+\end{itemize}
+
+\subsection*{Data types}
+\begin{itemize}
+\item Numeric:
+\begin{itemize}
+   \item Float:\\
+   \texttt{double}\\
+   \textit{[f tags; B subtype f tag elements]}
+   \item Integer:\\
+   \texttt{[u]int[8|16|32]\_t}\\
+   \textit{[i tags; B subtype cCsSiI tag elements; containment pos field]}
+   \item Size/Counters:\\
+   \texttt{uint32\_t}; larger than 0\\
+   \textit{[block size; number of segments in path; lenght of variable length
+       strings, sequences, B/H tags, cigars]}
+\end{itemize}
+\item Arrays:
+\begin{itemize}
+    \item of variable-size elements:\\
+    length obtained by parsing element\\
+    \texttt{uint32\_t} (number of elements) + elements of variable length\\
+    \textit{[path segment informations]}
+    \item of fixed-size elements with predefined element type\\
+    \texttt{uint32\_t} (number of elements) + \texttt{elem\_type[n\_elems]}\\
+    \textit{[record (as byte array);
+    variable length strings (see below); H tags; cigar strings]}
+    \item of fixed-size elements specifying the element type\\
+    \texttt{uint32\_t} (number of elements) +
+    \texttt{char} (element type code) +
+    \texttt{elem\_type[n\_elems]}\\
+    \textit{[B tags]}
+\end{itemize}
+\item Strings:
+\begin{itemize}
+  \item Fixed-length strings:\\
+    \texttt{char[string\_length]}; string length is
+    predefined\\
+    not 0-terminated\\
+    \textit{[record type; segment orientations
+    links/containments and in paths; A tags; tag name in optional
+fields; type specification in optional fields; subtype in B tags]}
+  \item Zero-delimited strings:\\
+    \texttt{char[]}; no 0-byte before last byte\\
+    0-terminated\\
+    \textit{[Z and J tags]}
+  \item Variable-length strings:\\
+    as arrays of fixed-size elements with predefined element type;\\
+    \texttt{uint32\_t} (\texttt{string\_length}) +
+    \texttt{char[string\_length]}\\
+    not 0-terminated\\
+    \textit{[segment/path name; segment names in
+    links/containments]}
+  \item CIGAR strings:\\
+    as arrays of fixed-size elements with predefined element type;\\
+    each element (oplen and opcode) is encoded in one \texttt{uint32\_t}
+    (see BAM specification)\\
+    \textit{[links/containments alignments, path segment alignments]}
+  \item Sequences:\\
+    \texttt{uint32\_t} (\texttt{seq\_length}, before encoding) +
+    \texttt{char[str\_length]};\\
+    sequence is 4bits encoded (see BAM spec.);
+    \texttt{str\_length} = ${\lceil \mathtt{seq\_length} / 2 \rceil}$\\
+    not 0-terminated\\
+    \textit{[segment sequence]}
+\end{itemize}
+\item Optional fields:
+  \begin{itemize}
+    \item \texttt{char[2]} name + \texttt{char[1]} datatype +
+      datatype-dependent representation
+  \end{itemize}
+\end{itemize}
+
+\newpage
+
+\subsection*{Record structure}
+
+\footnotesize
+
+\begin{tabular}{|l|>{\sffamily}l|p{6.5cm}|>{\ttfamily}l|l|}
+\hline
+\multicolumn{2}{|c|}{\textbf{Field}} &
+\multicolumn{1}{c|}{\textbf{Description}} &
+\multicolumn{1}{c|}{\textbf{Type}} &
+\multicolumn{1}{c|}{\textbf{Value}} \\
+\hline
+\multicolumn{2}{|l|}{\sf block\_size}
+  & Lenght of record & uint32\_t & \\
+\hline
+\multicolumn{2}{|l|}{\sf record\_type}
+  & Record Type & char & [HSLCP]\\
+\hline
+\multicolumn{5}{|c|}{\textcolor{gray}{\textit{Segments/Paths only}}} \\
+\hline
+\multicolumn{2}{|l|}{\sf l\_name} & Length of segment/path name  & uint32\_t & \\
+\hline
+\multicolumn{2}{|l|}{\sf name} & Segment/path name & char[l\_name] & \\
+\hline
+\multicolumn{5}{|c|}{\textcolor{gray}{\textit{Segments only}}} \\
+\hline
+\multicolumn{2}{|l|}{\sf l\_seq} & Length of seq &
+  uint32\_t & \\
+\hline
+\multicolumn{2}{|l|}{\sf seq} & 4-bit encoded read (see SAM spec) &
+  uint8\_t[(l\_seq+1)/2] & \\
+\hline
+\multicolumn{5}{|c|}{\textcolor{gray}{\textit{Paths only}}} \\
+\hline
+\multicolumn{2}{|l|}{\sf n\_segments} & Number of segments & uint32\_t & \\
+\hline
+\multicolumn{1}{|l}{} &
+\multicolumn{4}{c|}{\textcolor{gray}{\textit{List of segments in path (length: n\_segments)}}}\\
+\cline{2-5}
+& {\sf l\_s\_name} & Segment name length & uint32\_t & \\
+\cline{2-5}
+& {\sf s\_name} & Segment name & char[l\_s\_name] & \\
+\cline{2-5}
+& {\sf s\_orient} &
+Orientation of segment & char & [+-] \\
+\cline{2-5}
+& {\sf l\_s\_cigar} &
+Number of CIGAR operations & uint32\_t & \\
+\cline{2-5}
+& {\sf s\_cigar} &
+CIGAR: (see BAM spec) & uint32\_t[l\_s\_cigar] & \\
+\hline
+\multicolumn{5}{|c|}{\textcolor{gray}{\textit{Links/Containments only}}} \\
+\hline
+\multicolumn{2}{|l|}{\sf l\_from} & Length of ``from'' segment name  & uint32\_t & \\
+\hline
+\multicolumn{2}{|l|}{\sf from} & ``from'' segment name & char[l\_from] & \\
+\hline
+\multicolumn{2}{|l|}{\sf from\_orient} &
+Orientation of ``from'' segment & char & [+-] \\
+\hline
+\multicolumn{2}{|l|}{\sf l\_to} & Length of ``to'' segment name  & uint32\_t & \\
+\hline
+\multicolumn{2}{|l|}{\sf to} & ``to'' segment name & char[l\_to] & \\
+\hline
+\multicolumn{2}{|l|}{\sf to\_orient}
+  & Orientation of ``to' & char & [+-] \\
+\hline
+\multicolumn{2}{|l|}{\sf l\_cigar}
+& Number of operations in CIGAR & uint32\_t & \\
+\hline
+\multicolumn{2}{|l|}{\sf cigar}
+& CIGAR: (see BAM spec) & uint32\_t[l\_cigar] & \\
+\hline
+\multicolumn{5}{|c|}{\textcolor{gray}{\textit{Containments only}}} \\
+\hline
+\multicolumn{2}{|l|}{\sf pos}
+  & 0-based pos (=pos-1) & uint32\_t & \\
+\hline
+\multicolumn{5}{|c|}{\textcolor{gray}{\textit{All record types}}} \\
+\hline
+\multicolumn{1}{|l}{} &
+\multicolumn{4}{c|}{\textcolor{gray}{\textit{List of auxiliary data (until the
+end of the record)}}}\\
+\cline{2-5}
+& tag & Two-character tag & char[2] & \\
+\cline{2-5}
+& val\_type & Value type & char & [AcCsSiIfZBJH] \\
+\cline{2-5}
+& value & Tag value &
+\multicolumn{1}{l|}{depends on {\tt val\_type}} & \\
+&  &  &
+A: char & \\
+&  &  &
+i (cCsSiI): & \\
+& & & 
+\ \ \ [u]int[8|16|32]\_t & \\
+&  &  &
+f: double & \\
+&  &  &
+Z: char[] (0-term) & \\
+&  &  &
+J: char[] (0-term) & \\
+&  &  &
+B: char (value\_type) + & \\
+&  &  &
+\ \ \ uint32\_t (value\_len) + & \\
+&  &  &
+\ \ \ value\_type[value\_len] & \\
+&  &  &
+H: uint32\_t (value\_len) + & \\
+&  &  &
+\ \ \ char[value\_len] & \\
+\hline
+\end{tabular}
+
+\end{document}
+
