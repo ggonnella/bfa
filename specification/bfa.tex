@@ -90,118 +90,252 @@ fields; type specification in optional fields; subtype in B tags]}
 
 \newpage
 
-\subsection*{Record structure}
+\subsection*{Optional field values}
 
-\footnotesize
+The integer fields (i) of GFA can be stored
+in a number of integer fields with different sizes
+and either signed or unsigned. The application is
+free to choose an appriopriate type according to
+the value. When converting BFA to GFA
+all integer type optional fields shall be written
+as i optional fields.
+\vspace{0.5cm}
 
-\begin{tabular}{|l|>{\sffamily}l|p{6.5cm}|>{\ttfamily}l|l|}
+\begin{tabular}{|>{\ttfamily}l|>{\ttfamily}l|}
+  \hline
+  A & char \\
+  \hline
+  i (cCsSiIlL) & [u]int[8|16|32|64]\_t \\
+  \hline
+  f & double \\
+  \hline
+  Z & char[] (0-term) \\
+  \hline
+  J & char[] (0-term) \\
+  \hline
+  B & char (value\_type) + \\
+    & uint32\_t (value\_len) + \\
+    & value\_type[value\_len]  \\
+  \hline
+  H & uint32\_t (value\_len) + \\
+    & char[value\_len] \\
+  \hline
+\end{tabular}
+
+\subsection*{Header}
+
+The header contains all tags found in all header lines of the GFA file.
+It supports multiple H lines (unclear if this shall be allowed or not)
+and multiple definitions of the same tag (also unclear if this is meant to be
+allowed as it is not explicitely forbidden, but it is never so in examples).
+
+\vspace{0.5cm}
+
+\begin{tabular}{|l|>{\sffamily}l|p{6.5cm}|>{\ttfamily}l|}
 \hline
 \multicolumn{2}{|c|}{\textbf{Field}} &
 \multicolumn{1}{c|}{\textbf{Description}} &
-\multicolumn{1}{c|}{\textbf{Type}} &
-\multicolumn{1}{c|}{\textbf{Value}} \\
+\multicolumn{1}{c|}{\textbf{Type}} \\
 \hline
-\multicolumn{2}{|l|}{\sf block\_size}
-  & Lenght of record & uint32\_t & \\
-\hline
-\multicolumn{2}{|l|}{\sf record\_type}
-  & Record Type & char & [HSLCP]\\
-\hline
-\multicolumn{5}{|c|}{\textcolor{gray}{\textit{Segments/Paths only}}} \\
-\hline
-\multicolumn{2}{|l|}{\sf l\_name} & Length of segment/path name  & uint32\_t & \\
-\hline
-\multicolumn{2}{|l|}{\sf name} & Segment/path name & char[l\_name] & \\
-\hline
-\multicolumn{5}{|c|}{\textcolor{gray}{\textit{Segments only}}} \\
-\hline
-\multicolumn{2}{|l|}{\sf l\_seq} & Length of seq &
-  uint32\_t & \\
-\hline
-\multicolumn{2}{|l|}{\sf seq} & 4-bit encoded read (see SAM spec) &
-  uint8\_t[(l\_seq+1)/2] & \\
-\hline
-\multicolumn{5}{|c|}{\textcolor{gray}{\textit{Paths only}}} \\
-\hline
-\multicolumn{2}{|l|}{\sf n\_segments} & Number of segments & uint32\_t & \\
+\multicolumn{2}{|l|}{\sf n\_header\_tags}
+  & Number of header tags & uint32\_t \\
 \hline
 \multicolumn{1}{|l}{} &
-\multicolumn{4}{c|}{\textcolor{gray}{\textit{List of segments in path (length: n\_segments)}}}\\
-\cline{2-5}
-& {\sf l\_s\_name} & Segment name length & uint32\_t & \\
-\cline{2-5}
-& {\sf s\_name} & Segment name & char[l\_s\_name] & \\
-\cline{2-5}
-& {\sf s\_orient} &
-Orientation of segment & char & [+-] \\
-\cline{2-5}
-& {\sf l\_s\_cigar} &
-Number of CIGAR operations & uint32\_t & \\
-\cline{2-5}
-& {\sf s\_cigar} &
-CIGAR: (see BAM spec) & uint32\_t[l\_s\_cigar] & \\
-\hline
-\multicolumn{5}{|c|}{\textcolor{gray}{\textit{Links/Containments only}}} \\
-\hline
-\multicolumn{2}{|l|}{\sf l\_from} & Length of ``from'' segment name  & uint32\_t & \\
-\hline
-\multicolumn{2}{|l|}{\sf from} & ``from'' segment name & char[l\_from] & \\
-\hline
-\multicolumn{2}{|l|}{\sf from\_orient} &
-Orientation of ``from'' segment & char & [+-] \\
-\hline
-\multicolumn{2}{|l|}{\sf l\_to} & Length of ``to'' segment name  & uint32\_t & \\
-\hline
-\multicolumn{2}{|l|}{\sf to} & ``to'' segment name & char[l\_to] & \\
-\hline
-\multicolumn{2}{|l|}{\sf to\_orient}
-  & Orientation of ``to' & char & [+-] \\
-\hline
-\multicolumn{2}{|l|}{\sf l\_cigar}
-& Number of operations in CIGAR & uint32\_t & \\
-\hline
-\multicolumn{2}{|l|}{\sf cigar}
-& CIGAR: (see BAM spec) & uint32\_t[l\_cigar] & \\
-\hline
-\multicolumn{5}{|c|}{\textcolor{gray}{\textit{Containments only}}} \\
-\hline
-\multicolumn{2}{|l|}{\sf pos}
-  & 0-based pos (=pos-1) & uint32\_t & \\
-\hline
-\multicolumn{5}{|c|}{\textcolor{gray}{\textit{All record types}}} \\
-\hline
-\multicolumn{1}{|l}{} &
-\multicolumn{4}{c|}{\textcolor{gray}{\textit{List of auxiliary data (until the
-end of the record)}}}\\
-\cline{2-5}
-& tag & Two-character tag & char[2] & \\
-\cline{2-5}
-& val\_type & Value type & char & [AcCsSiIfZBJH] \\
-\cline{2-5}
+\multicolumn{3}{c|}{\textcolor{gray}{\textit{Header fields
+(length: n\_header\_tags times)}}}\\
+\cline{2-4}
+& tag & Two-character tag & char[2] \\
+\cline{2-4}
+& val\_type & Value type & char (AcCsSiIfZBJH) \\
+\cline{2-4}
 & value & Tag value &
-\multicolumn{1}{l|}{depends on {\tt val\_type}} & \\
-&  &  &
-A: char & \\
-&  &  &
-i (cCsSiI): & \\
-& & & 
-\ \ \ [u]int[8|16|32]\_t & \\
-&  &  &
-f: double & \\
-&  &  &
-Z: char[] (0-term) & \\
-&  &  &
-J: char[] (0-term) & \\
-&  &  &
-B: char (value\_type) + & \\
-&  &  &
-\ \ \ uint32\_t (value\_len) + & \\
-&  &  &
-\ \ \ value\_type[value\_len] & \\
-&  &  &
-H: uint32\_t (value\_len) + & \\
-&  &  &
-\ \ \ char[value\_len] & \\
+depends on {\tt val\_type} \\
+\hline
+\end{tabular}
+
+\newpage
+
+\subsection*{Segments}
+
+To store the sequence in a separate file, use empty sequences (GFA "*")
+and store the filename/sequence number in optional fields.
+Empty sequences shall be stored as follows: \texttt{l\_seq} shall be set
+to 0 and the field \texttt{seq} shall be skipped.
+\vspace{0.5cm}
+
+\begin{tabular}{|ll|>{\sffamily}l|p{6.5cm}|>{\ttfamily}l|}
+\hline
+\multicolumn{3}{|c|}{\textbf{Field}} &
+\multicolumn{1}{c|}{\textbf{Description}} &
+\multicolumn{1}{c|}{\textbf{Type}} \\
+\hline
+\multicolumn{3}{|l|}{\sf n\_segments}
+& Number of segment records & uint32\_t (< MAXINT32T) \\
+\hline
+\multicolumn{1}{|l}{} &
+\multicolumn{4}{c|}{\textcolor{gray}{\textit{Segments (length: n\_segments)}}}\\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf l\_name} & Length of segment name  & uint32\_t \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf name} & Segment name & char[l\_name] \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf l\_seq} & Uncompressed sequence length & uint32\_t \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf seq} & 4-bit encoded read (see SAM spec) &
+  uint8\_t[(l\_seq+1)/2] \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf n\_optfields}
+  & Number of optional fields & uint32\_t \\
+\cline{2-5}
+\multicolumn{2}{|l}{} &
+\multicolumn{3}{c|}{\textcolor{gray}{\textit{Optional fields
+(length: n\_header\_tags times)}}}\\
+\cline{3-5}
+& & tag & Two-character tag & char[2] \\
+\cline{3-5}
+& & val\_type & Value type & char (AcCsSiIfZBJH) \\
+\cline{3-5}
+& & value & Tag value &
+depends on {\tt val\_type} \\
+\hline
+\end{tabular}
+
+\vspace{0.5cm}
+\subsection*{Links}
+
+Empty overlap shall be stored as follows: \texttt{l\_cigar} shall be set
+to 0 and the field \texttt{cigar} shall be skipped.
+\vspace{0.5cm}
+
+\begin{tabular}{|ll|>{\sffamily}l|p{6.5cm}|>{\ttfamily}l|}
+\hline
+\multicolumn{3}{|c|}{\textbf{Field}} &
+\multicolumn{1}{c|}{\textbf{Description}} &
+\multicolumn{1}{c|}{\textbf{Type}} \\
+\hline
+\multicolumn{3}{|l|}{\sf n\_links}
+& Number of link records & uint32\_t (< MAXINT32T) \\
+\hline
+\multicolumn{1}{|l}{} &
+\multicolumn{4}{c|}{\textcolor{gray}{\textit{Links (length: n\_links)}}}\\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf from} & From segment ID + 1 (orient: sign) & int32\_t \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf to} & To segment ID + 1 (orient: sign) & int32\_t \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf l\_cigar} &
+Number of CIGAR operations & uint32\_t \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf cigar} &
+CIGAR: (see BAM spec) & uint32\_t[l\_cigar] \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf n\_optfields}
+  & Number of optional fields & uint32\_t \\
+\cline{2-5}
+\multicolumn{2}{|l}{} &
+\multicolumn{3}{c|}{\textcolor{gray}{\textit{Optional fields
+(length: n\_header\_tags times)}}}\\
+\cline{3-5}
+& & tag & Two-character tag & char[2] \\
+\cline{3-5}
+& & val\_type & Value type & char (AcCsSiIfZBJH) \\
+\cline{3-5}
+& & value & Tag value &
+depends on {\tt val\_type} \\
+\hline
+\end{tabular}
+
+\newpage
+
+\subsection*{Containments}
+
+Empty overlap shall be stored as follows: \texttt{l\_cigar} shall be set
+to 0 and the field \texttt{cigar} shall be skipped.
+\vspace{0.5cm}
+
+\begin{tabular}{|ll|>{\sffamily}l|p{6.5cm}|>{\ttfamily}l|}
+\hline
+\multicolumn{3}{|c|}{\textbf{Field}} &
+\multicolumn{1}{c|}{\textbf{Description}} &
+\multicolumn{1}{c|}{\textbf{Type}} \\
+\hline
+\multicolumn{3}{|l|}{\sf n\_containments}
+& Number of containment records & uint32\_t \\
+\hline
+\multicolumn{1}{|l}{} &
+\multicolumn{4}{c|}{\textcolor{gray}{\textit{Containments (length:
+n\_containments)}}}\\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf from} & From segment ID + 1 (orient: sign) & int32\_t \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf to} & To segment ID + 1 (orient: sign) & int32\_t \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf l\_cigar} &
+Number of CIGAR operations & uint32\_t \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf cigar} &
+CIGAR: (see BAM spec) & uint32\_t[l\_cigar] \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf pos} &
+Position (0-based, as in GFA) & uint32\_t \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf n\_optfields}
+  & Number of optional fields & uint32\_t \\
+\cline{2-5}
+\multicolumn{2}{|l}{} &
+\multicolumn{3}{c|}{\textcolor{gray}{\textit{Optional fields
+(length: n\_header\_tags times)}}}\\
+\cline{3-5}
+& & tag & Two-character tag & char[2] \\
+\cline{3-5}
+& & val\_type & Value type & char (AcCsSiIfZBJH) \\
+\cline{3-5}
+& & value & Tag value &
+depends on {\tt val\_type} \\
+\hline
+\end{tabular}
+
+\subsection*{Paths}
+\vspace{0.5cm}
+
+\begin{tabular}{|ll|>{\sffamily}l|p{6.5cm}|>{\ttfamily}l|}
+\hline
+\multicolumn{3}{|c|}{\textbf{Field}} &
+\multicolumn{1}{c|}{\textbf{Description}} &
+\multicolumn{1}{c|}{\textbf{Type}} \\
+\hline
+\multicolumn{3}{|l|}{\sf n\_paths}
+& Number of path records & uint32\_t (< MAXINT32T) \\
+\hline
+\multicolumn{1}{|l}{} &
+\multicolumn{4}{c|}{\textcolor{gray}{\textit{Paths (length: n\_paths)}}}\\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf l\_name} & Length of path name & uint32\_t \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf name} & Path name & char[l\_name] \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf n\_links}
+& Number of links (negative if circular path) & int32\_t \\
+\cline{2-5}
+\multicolumn{2}{|l}{} &
+\multicolumn{3}{c|}{\textcolor{gray}{\textit{Path links
+(length: n\_links times)}}}\\
+\cline{3-5}
+& & link\_id & Link ID & uint32\_t \\
+\cline{2-5}
+& \multicolumn{2}{|l|}{\sf n\_optfields}
+  & Number of optional fields & uint32\_t \\
+\cline{2-5}
+\multicolumn{2}{|l}{} &
+\multicolumn{3}{c|}{\textcolor{gray}{\textit{Optional fields
+(length: n\_header\_tags times)}}}\\
+\cline{3-5}
+& & tag & Two-character tag & char[2] \\
+\cline{3-5}
+& & val\_type & Value type & char (AcCsSiIfZBJH) \\
+\cline{3-5}
+& & value & Tag value &
+depends on {\tt val\_type} \\
 \hline
 \end{tabular}
 
