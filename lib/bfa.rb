@@ -3,16 +3,14 @@ BFA = Module.new
 require "rgfa"
 
 require_relative "bfa/constants"
-require_relative "bfa/file"
+require_relative "bfa/reader"
+require_relative "bfa/writer"
 require_relative "rgfa/line"
 
 class RGFA
 
-  def to_bfa(filename)
-    file = File.open(filename, "w")
-    file.print BFA::Constants::MAGIC_STRING
-    each_line {|line| file.print(line.to_bfa_record)}
-    file.close
+  def to_bfa(filename, compressed=true)
+    BFA::Writer.encode(filename, self, compressed)
     return nil
   end
 
@@ -22,6 +20,12 @@ class RGFA
 
     def from_file(filename)
       f = File.open(filename)
+      is_gzip = (f.read(2).bytes == [31,139])
+      if is_gzip
+        # currently only gzipped bfa are supported
+        f.close
+        from_bfa(filename)
+      end
       is_bfa = (f.read(4) == BFA::Constants::MAGIC_STRING)
       f.close
       if is_bfa
@@ -32,7 +36,7 @@ class RGFA
     end
 
     def from_bfa(filename)
-      BFA::File.new(filename).parse
+      BFA::Reader.parse(filename)
     end
 
   end

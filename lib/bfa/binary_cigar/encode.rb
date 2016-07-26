@@ -3,7 +3,6 @@ require_relative "../binary_cigar"
 module BFA::BinaryCigar::Encode
 
     def to_binary
-      p self
       (len << 4) |
         BFA::BinaryCigar::OPCODE_TO_NUM[code]
     end
