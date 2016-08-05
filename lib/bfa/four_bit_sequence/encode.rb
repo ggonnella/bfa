@@ -1,4 +1,3 @@
-require "rgfa/byte_array"
 require_relative "../four_bit_sequence"
 
 module BFA::FourBitSequence::Encode
@@ -22,4 +21,6 @@ module BFA::FourBitSequence::Encode
 
 end
 
-require_relative "../../core/string"
+class String
+  include BFA::FourBitSequence::Encode
+end

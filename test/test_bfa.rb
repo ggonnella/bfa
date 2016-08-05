@@ -1,3 +1,4 @@
+require "rgfa"
 require_relative "../lib/bfa"
 require "test/unit"
 require "tempfile"

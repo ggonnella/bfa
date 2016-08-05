@@ -9,4 +9,6 @@ module BFA::BinaryCigar::Encode
 
 end
 
-require_relative "../../rgfa/cigar_operation"
+class RGFA::CIGAR::Operation
+  include BFA::BinaryCigar::Encode
+end

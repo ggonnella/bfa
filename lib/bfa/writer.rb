@@ -39,7 +39,7 @@ class BFA::Writer
   private
 
   def add_headers(rgfa)
-    headers_array = rgfa.headers_array
+    headers_array = rgfa.header.tags
     add_size_of(headers_array)
     headers_array.each do |fieldname, val_type, value|
       add_optfield(fieldname, value, val_type)
@@ -110,7 +110,7 @@ class BFA::Writer
     add_size_of(rgfa.paths)
     rgfa.paths.each do |path|
       add_varlenstr(path.path_name)
-      links = rgfa.path_links(path)
+      links = path.links
       # <debug> "Path links: #{links.inspect}"
       n_links = links.size
       n_links = -n_links if path.circular?

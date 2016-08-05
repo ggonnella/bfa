@@ -30,11 +30,6 @@ Gem::Specification.new do |s|
               'lib/bfa/four_bit_sequence/decode.rb',
               'lib/bfa/four_bit_sequence/encode.rb',
               'lib/bfa/writer.rb',
-              'lib/core/integer.rb',
-              'lib/core/string.rb',
-              'lib/rgfa/byte_array.rb',
-              'lib/rgfa/cigar_operation.rb',
-              'lib/rgfa/line.rb',
             ]
   s.homepage = 'http://github.com/ggonnella/bfa'
   s.license = 'CC-BY-SA'

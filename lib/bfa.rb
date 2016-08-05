@@ -5,7 +5,6 @@ require "rgfa"
 require_relative "bfa/constants"
 require_relative "bfa/reader"
 require_relative "bfa/writer"
-require_relative "rgfa/line"
 
 class RGFA
 
@@ -43,7 +42,6 @@ class RGFA
 
 end
 
-require_relative "rgfa/cigar_operation"
-require_relative "rgfa/byte_array"
-require_relative "core/integer"
-require_relative "core/string"
+class RGFA::Line
+  attr_accessor :line_id
+end

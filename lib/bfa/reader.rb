@@ -55,22 +55,11 @@ class BFA::Reader
 
   def parse_headers(rgfa)
     n_optfields = parse_size
-    headers_data = {:multiple_values => []}
     n_optfields.times do
       n, t, v = parse_optfield
-      if headers_data.has_key?(n)
-        if :multiple_values.has_key?(n)
-          headers_data[n] << v
-        else
-          headers_data[:multiple_values] << n
-          headers_data[n] = [headers_data[n], v]
-        end
-      else
-        headers_data[n] = v
-      end
+      rgfa.header.add(n, v, t)
     end
-    # <debug> "Headers data: #{headers_data}"
-    rgfa.set_headers(headers_data)
+    # <debug> "Headers data: #{rgfa.header}"
   end
 
   def parse_segments(rgfa)
@@ -92,8 +81,8 @@ class BFA::Reader
 
   def parse_segment(rgfa)
     line_data = {}
-    line_data[:name] = [parse_varlenstr.to_sym, :lbl]
-    line_data[:sequence] = [parse_sequence, :seq]
+    line_data[:name] = parse_varlenstr.to_sym
+    line_data[:sequence] = parse_sequence
     parse_optfields(line_data)
     # <debug> "Segment data: #{line_data}"
     segment = RGFA::Line::Segment.new(line_data)
@@ -120,12 +109,12 @@ class BFA::Reader
     line_data = {}
     [:from, :to].each do |dir|
       line_id = parse_numeric_value(:i)
-      line_data[:"#{dir}_orient"] = [line_id > 0 ? :+ : :-, :orn]
-      line_data[dir] = [rgfa.segment_names[(line_id.abs)-1].to_sym, :lbl]
+      line_data[:"#{dir}_orient"] = line_id > 0 ? :+ : :-
+      line_data[dir] = rgfa.segment_names[(line_id.abs)-1].to_sym
     end
-    line_data[:overlap] = [parse_cigar, :cig]
+    line_data[:overlap] = parse_cigar
     if containment
-      line_data[:pos] = [parse_numeric_value(:I), :pos]
+      line_data[:pos] = parse_numeric_value(:I)
     end
     parse_optfields(line_data)
     # <debug> "Edge data: #{line_data}"
@@ -145,29 +134,29 @@ class BFA::Reader
 
   def parse_path(rgfa)
     line_data = {}
-    line_data[:path_name] = [parse_varlenstr.to_sym, :lbl]
+    line_data[:path_name] = parse_varlenstr.to_sym
     n_links = parse_size
     circular = false
     if n_links < 0
       n_links = -n_links
       circular = true
     end
-    line_data[:segment_names] = [[], :lbs]
-    line_data[:cigars] = [[], :cgs]
+    line_data[:segment_names] = []
+    line_data[:cigars] = []
     n_links.times do |i|
       line_id = parse_numeric_value(:i)
       reverse_link = line_id < 0
       link = rgfa.links[line_id.abs-1]
       link = link.reverse if reverse_link
-      if line_data[:segment_names][0].empty?
-        line_data[:segment_names][0] <<
+      if line_data[:segment_names].empty?
+        line_data[:segment_names] <<
           [link.from, link.from_orient].to_oriented_segment
       end
       if !circular or i < (n_links-1)
-        line_data[:segment_names][0] <<
+        line_data[:segment_names] <<
           [link.to, link.to_orient].to_oriented_segment
       end
-      line_data[:cigars][0] << link.overlap
+      line_data[:cigars] << link.overlap
     end
     parse_optfields(line_data)
     # <debug> "Path data: #{line_data}"

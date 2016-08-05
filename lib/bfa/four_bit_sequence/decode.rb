@@ -13,4 +13,6 @@ module BFA::FourBitSequence::Decode
 
 end
 
-require_relative "../../rgfa/byte_array"
+class RGFA::ByteArray
+  include BFA::FourBitSequence::Decode
+end

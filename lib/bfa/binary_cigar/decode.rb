@@ -1,4 +1,3 @@
-require "rgfa/cigar_operation"
 require_relative "../binary_cigar"
 
 module BFA::BinaryCigar::Decode
@@ -10,4 +9,6 @@ module BFA::BinaryCigar::Decode
 
 end
 
-require_relative "../../core/integer"
+class Integer
+  include BFA::BinaryCigar::Decode
+end
