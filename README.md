@@ -13,7 +13,7 @@ https://github.com/ggonnella/RGFA
 ## Specification
 
 The BFA format is described here:
-https://github.com/ggonnella/bfa/tree/master/specification/specification.pdf
+https://github.com/ggonnella/bfa/tree/master/specification/bfa.pdf
 
 ## Poster
 
