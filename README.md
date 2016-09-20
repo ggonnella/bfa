@@ -10,6 +10,18 @@ RGFA class, which implements a binary format, BFA, equivalent to RGFA.
 Please install RGFA prior to this.
 https://github.com/ggonnella/RGFA
 
+## Specification
+
+The BFA format is described here:
+https://github.com/ggonnella/bfa/tree/master/specification/specification.pdf
+
+## Poster
+
+A conference poster describing RGFA and BFA has been presented at the
+Genome Informatics 2016 conference.
+The poster can be downloaded here:
+https://github.com/ggonnella/bfa/tree/master/poster/poster.pdf
+
 ## Usage
 
 require "rgfa" from the RGFA library and "bfa" from this library.
